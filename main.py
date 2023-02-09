@@ -17,9 +17,86 @@ dct_resp = {}
 lst_resp = []
 points = []
 
+address = None
+font = pygame.font.Font('freesansbold.ttf', 12)
 mapBASE = ('map', 'sat', 'sat,skl')
 map = mapBASE[0]
 coords_long, coords_lat = toponym_coodrinates
+
+
+def apply_value():
+    global mapBASE, map
+    value = dropdown.getSelected()
+    if value == 'map':
+        map = mapBASE[0]
+    elif value == 'sat':
+        map = mapBASE[1]
+    elif value == 'sat,skl':
+        map = mapBASE[2]
+    update_map()
+
+
+# активируется клавишей enter или кнопкой 'искать'
+def output_text():
+    global coords_lat, coords_long, points, address
+    srk = textbox.getText()
+    if srk != '':
+        geo_request = "http://geocode-maps.yandex.ru/1.x/?apikey=40d1649f-0493-4b70-98ba-98533de7710b&geocode" \
+                      f"={srk}&format=json"
+        resp = requests.get(geo_request)
+        json_response = resp.json()
+        toponym = json_response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
+        toponym_coords = [float(f) for f in toponym['Point']['pos'].split(' ')]
+        address = toponym['metaDataProperty']['GeocoderMetaData']['Address']['formatted']
+        coords_long = str(toponym_coords[0])
+        coords_lat = str(toponym_coords[1])
+
+        points.append((','.join([str(toponym_coords[0]), str(toponym_coords[1]), 'pm2rdm']), address))
+        update_map()
+
+
+def address_print(address=None):
+    global font
+    if address is not None:
+        text = font.render(address, True, (255, 0, 0))
+    else:
+        text = font.render('Адрес не задан', True, (255, 0, 0))
+    textRect = text.get_rect()
+    textRect.x = 70
+    textRect.y = 420
+    screen.blit(text, textRect)
+
+
+def reset():
+    global points, address
+    points = []
+    address = None
+    update_map()
+
+
+def update_map():
+    global screen, coords_lat, coords_long, map, cnt, address
+    if len(points) > 0:
+        map_params = {
+            "ll": ",".join([coords_long, coords_lat]),
+            "spn": ','.join([str(cnt), str(cnt)]),
+            "l": map,
+            "pt": ','.join(['~'.join([f[0] for f in points])])
+        }
+    else:
+        map_params = {
+            "ll": ",".join([coords_long, coords_lat]),
+            "spn": ','.join([str(cnt), str(cnt)]),
+            "l": map
+        }
+    response = requests.get(map_api_server, params=map_params)
+    map_file = "map.png"
+    with open(map_file, "wb") as file:
+        file.write(response.content)
+    screen.blit(pygame.image.load(map_file), (0, 0))
+    os.remove(map_file)
+    address_print(address)
+
 
 map_api_server = "http://static-maps.yandex.ru/1.x/"
 
@@ -41,66 +118,9 @@ countup = 1
 countdown = 1
 screen = pygame.display.set_mode((600, 450))
 screen.blit(pygame.image.load(map_file), (0, 0))
+address_print()
 pygame.display.flip()
 os.remove(map_file)
-
-
-def apply_value():
-    global mapBASE, map
-    value = dropdown.getSelected()
-    if value == 'map':
-        map = mapBASE[0]
-    elif value == 'sat':
-        map = mapBASE[1]
-    elif value == 'sat,skl':
-        map = mapBASE[2]
-    update_map()
-
-
-# активируется клавишей enter или кнопкой 'искать'
-def output_text():
-    global coords_lat, coords_long, points
-    srk = textbox.getText()
-    geo_request = "http://geocode-maps.yandex.ru/1.x/?apikey=40d1649f-0493-4b70-98ba-98533de7710b&geocode" \
-                  f"={srk}&format=json"
-    resp = requests.get(geo_request)
-    json_response = resp.json()
-    toponym = json_response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
-    toponym_coords = [float(f) for f in toponym['Point']['pos'].split(' ')]
-    coords_long = str(toponym_coords[0])
-    coords_lat = str(toponym_coords[1])
-    points.append(','.join([str(toponym_coords[0]), str(toponym_coords[1]), 'pm2rdm']))
-    update_map()
-
-
-def reset():
-    global points
-    points = []
-    update_map()
-
-
-def update_map():
-    global screen, coords_lat, coords_long, map, cnt
-    if len(points) > 0:
-        map_params = {
-            "ll": ",".join([coords_long, coords_lat]),
-            "spn": ','.join([str(cnt), str(cnt)]),
-            "l": map,
-            "pt": ','.join(['~'.join(points)])
-        }
-    else:
-        map_params = {
-            "ll": ",".join([coords_long, coords_lat]),
-            "spn": ','.join([str(cnt), str(cnt)]),
-            "l": map
-        }
-    response = requests.get(map_api_server, params=map_params)
-    map_file = "map.png"
-    with open(map_file, "wb") as file:
-        file.write(response.content)
-    screen.blit(pygame.image.load(map_file), (0, 0))
-    os.remove(map_file)
-
 
 dropdown = Dropdown(
     screen, 490, 10, 100, 30, name='Схема',
