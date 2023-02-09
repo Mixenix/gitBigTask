@@ -15,6 +15,7 @@ zinit = float(input('Введите масштаб: (0.xx) '))
 
 dct_resp = {}
 lst_resp = []
+points = []
 
 mapBASE = ('map', 'sat', 'sat,skl')
 map = mapBASE[0]
@@ -58,7 +59,7 @@ def apply_value():
 
 # активируется клавишей enter или кнопкой 'искать'
 def output_text():
-    global coords_lat, coords_long
+    global coords_lat, coords_long, points
     srk = textbox.getText()
     geo_request = "http://geocode-maps.yandex.ru/1.x/?apikey=40d1649f-0493-4b70-98ba-98533de7710b&geocode" \
                   f"={srk}&format=json"
@@ -68,17 +69,18 @@ def output_text():
     toponym_coords = [float(f) for f in toponym['Point']['pos'].split(' ')]
     coords_long = str(toponym_coords[0])
     coords_lat = str(toponym_coords[1])
-    update_map(top_coords=toponym_coords)
+    points.append(','.join([str(toponym_coords[0]), str(toponym_coords[1]), 'pm2rdm']))
+    update_map()
 
 
-def update_map(top_coords=None):
+def update_map():
     global screen, coords_lat, coords_long, map, cnt
-    if top_coords is not None:
+    if len(points) > 0:
         map_params = {
             "ll": ",".join([coords_long, coords_lat]),
             "spn": ','.join([str(cnt), str(cnt)]),
             "l": map,
-            "pt": ','.join([str(top_coords[0]), str(top_coords[1]), 'pm2rdm'])
+            "pt": ','.join(['~'.join(points)])
         }
     else:
         map_params = {
