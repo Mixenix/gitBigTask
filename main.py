@@ -6,6 +6,7 @@ import pygame_widgets
 from pygame_widgets.button import Button
 from pygame_widgets.dropdown import Dropdown
 import requests as requests
+from pygame_widgets.textbox import TextBox
 
 pygame.init()
 
@@ -55,24 +56,46 @@ def apply_value():
     update_map()
 
 
-def update_map():
+# активируется клавишей enter или кнопкой 'искать'
+def output_text():
+    global coords_lat, coords_long
+    srk = textbox.getText()
+    geo_request = "http://geocode-maps.yandex.ru/1.x/?apikey=40d1649f-0493-4b70-98ba-98533de7710b&geocode" \
+                  f"={srk}&format=json"
+    resp = requests.get(geo_request)
+    json_response = resp.json()
+    toponym = json_response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
+    toponym_coords = [float(f) for f in toponym['Point']['pos'].split(' ')]
+    coords_long = str(toponym_coords[0])
+    coords_lat = str(toponym_coords[1])
+    update_map(top_coords=toponym_coords)
+
+
+def update_map(top_coords=None):
     global screen, coords_lat, coords_long, map, cnt
-    map_params = {
-        "ll": ",".join([coords_long, coords_lat]),
-        "spn": ','.join([str(cnt), str(cnt)]),
-        "l": map
-    }
+    if top_coords is not None:
+        map_params = {
+            "ll": ",".join([coords_long, coords_lat]),
+            "spn": ','.join([str(cnt), str(cnt)]),
+            "l": map,
+            "pt": ','.join([str(top_coords[0]), str(top_coords[1]), 'pm2rdm'])
+        }
+    else:
+        map_params = {
+            "ll": ",".join([coords_long, coords_lat]),
+            "spn": ','.join([str(cnt), str(cnt)]),
+            "l": map
+        }
     response = requests.get(map_api_server, params=map_params)
     map_file = "map.png"
     with open(map_file, "wb") as file:
         file.write(response.content)
     screen.blit(pygame.image.load(map_file), (0, 0))
-    pygame.display.flip()
     os.remove(map_file)
 
 
 dropdown = Dropdown(
-    screen, 70, 10, 100, 50, name='Схема',
+    screen, 490, 10, 100, 30, name='Схема',
     choices=[
         'Cхема',
         'Спутник',
@@ -82,10 +105,21 @@ dropdown = Dropdown(
 )
 
 button = Button(
-    screen, 10, 10, 50, 50, text='выбрать', fontSize=30,
-    margin=20, inactiveColour=(255, 0, 0), pressedColour=(0, 255, 0),
-    radius=5, onClick=apply_value, font=pygame.font.SysFont('calibri', 10),
-    textVAlign='bottom'
+    screen, 410, 10, 75, 30, text='Выбрать', fontSize=30,
+    margin=20, inactiveColour=(200, 0, 100), pressedColour=(0, 255, 0),
+    radius=5, onClick=apply_value, font=pygame.font.SysFont('calibri', 18),
+    textVAlign='center'
+)
+
+textbox = TextBox(screen, 90, 10, 200, 30, fontSize=20,
+                  borderColour=(200, 0, 100), textColour=(0, 0, 0),
+                  onSubmit=output_text, radius=10, borderThickness=1)
+
+button2 = Button(
+    screen, 10, 10, 75, 30, text='Искать', fontSize=30,
+    margin=15, inactiveColour=(200, 0, 100), pressedColour=(0, 255, 0),
+    radius=5, onClick=output_text, font=pygame.font.SysFont('calibri', 18),
+    textVAlign='center'
 )
 
 while running:
@@ -120,6 +154,6 @@ while running:
                 if float(coords_long) + cnt * 2 < 180 and float(coords_long) + cnt * 2 > -180:
                     coords_long = str(float(coords_long) + cnt * 2)
                     update_map()
-        pygame_widgets.update(events)
-        pygame.display.update()
+    pygame_widgets.update(events)
+    pygame.display.update()
 sys.exit()
