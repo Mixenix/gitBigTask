@@ -73,6 +73,12 @@ def output_text():
     update_map()
 
 
+def reset():
+    global points
+    points = []
+    update_map()
+
+
 def update_map():
     global screen, coords_lat, coords_long, map, cnt
     if len(points) > 0:
@@ -106,21 +112,28 @@ dropdown = Dropdown(
     borderRadius=3, colour=pygame.Color('white'), values=['map', 'sat', 'sat,skl'], direction='down', textHAlign='left'
 )
 
-button = Button(
+textbox = TextBox(screen, 90, 10, 200, 30, fontSize=20,
+                  borderColour=(200, 0, 100), textColour=(0, 0, 0),
+                  onSubmit=output_text, radius=10, borderThickness=1)
+
+button_select = Button(
     screen, 410, 10, 75, 30, text='Выбрать', fontSize=30,
     margin=20, inactiveColour=(200, 0, 100), pressedColour=(0, 255, 0),
     radius=5, onClick=apply_value, font=pygame.font.SysFont('calibri', 18),
     textVAlign='center'
 )
 
-textbox = TextBox(screen, 90, 10, 200, 30, fontSize=20,
-                  borderColour=(200, 0, 100), textColour=(0, 0, 0),
-                  onSubmit=output_text, radius=10, borderThickness=1)
-
-button2 = Button(
+button_search = Button(
     screen, 10, 10, 75, 30, text='Искать', fontSize=30,
     margin=15, inactiveColour=(200, 0, 100), pressedColour=(0, 255, 0),
     radius=5, onClick=output_text, font=pygame.font.SysFont('calibri', 18),
+    textVAlign='center'
+)
+
+button_reset = Button(
+    screen, 10, 410, 50, 30, text='Сброс', fontSize=30,
+    margin=15, inactiveColour=(200, 0, 100), pressedColour=(0, 255, 0),
+    radius=5, onClick=reset, font=pygame.font.SysFont('calibri', 18),
     textVAlign='center'
 )
 
