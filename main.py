@@ -8,7 +8,6 @@ from pygame_widgets.dropdown import Dropdown
 import requests as requests
 from pygame_widgets.textbox import TextBox
 
-
 pygame.init()
 
 toponym_coodrinates = input('Введите координаты: ').split(',')
@@ -21,10 +20,11 @@ points = []
 mapBASE = ('map', 'sat', 'sat,skl')
 map = mapBASE[0]
 coordsxy = [coords_long, coords_lat] = toponym_coodrinates
+
 map_api_server = "http://static-maps.yandex.ru/1.x/"
 
 map_params = {
-    "ll": ",".join(coordsxy),
+    "ll": ",".join([coords_long, coords_lat]),
     "spn": ','.join([str(zinit), str(zinit)]),
     "l": "map"
 }
@@ -35,11 +35,14 @@ with open(map_file, "wb") as file:
     file.write(response.content)
 running = True
 cnt = zinit
+countleft = 1
+countright = 1
+countup = 1
+countdown = 1
 screen = pygame.display.set_mode((600, 450))
 screen.blit(pygame.image.load(map_file), (0, 0))
 pygame.display.flip()
 os.remove(map_file)
-
 
 def apply_value():
     global map
@@ -75,6 +78,12 @@ def output_text():
         update_map(screen, coordsxy, points, cnt=cnt)
 
 
+def reset():
+    global points
+    points = []
+    update_map(screen, coordsxy, points, cnt=cnt)
+
+
 def update_map(screen, coordsxy, points, cnt=0.1):
     global map
     if len(points) > 0:
@@ -108,27 +117,35 @@ dropdown = Dropdown(
     borderRadius=3, colour=pygame.Color('white'), values=['map', 'sat', 'sat,skl'], direction='down', textHAlign='left'
 )
 
-button = Button(
+textbox = TextBox(screen, 90, 10, 200, 30, fontSize=20,
+                  borderColour=(200, 0, 100), textColour=(0, 0, 0),
+                  onSubmit=output_text, radius=10, borderThickness=1)
+
+button_select = Button(
     screen, 410, 10, 75, 30, text='Выбрать', fontSize=30,
     margin=20, inactiveColour=(200, 0, 100), pressedColour=(0, 255, 0),
     radius=5, onClick=apply_value, font=pygame.font.SysFont('calibri', 18),
     textVAlign='center'
 )
 
-textbox = TextBox(screen, 90, 10, 200, 30, fontSize=20,
-                  borderColour=(200, 0, 100), textColour=(0, 0, 0),
-                  onSubmit=output_text, radius=10, borderThickness=1)
-
-button2 = Button(
+button_search = Button(
     screen, 10, 10, 75, 30, text='Искать', fontSize=30,
     margin=15, inactiveColour=(200, 0, 100), pressedColour=(0, 255, 0),
     radius=5, onClick=output_text, font=pygame.font.SysFont('calibri', 18),
     textVAlign='center'
 )
 
+button_reset = Button(
+    screen, 10, 410, 50, 30, text='Сброс', fontSize=30,
+    margin=15, inactiveColour=(200, 0, 100), pressedColour=(0, 255, 0),
+    radius=5, onClick=reset, font=pygame.font.SysFont('calibri', 18),
+    textVAlign='center'
+)
+
 while running:
     events = pygame.event.get()
     for event in events:
+        coords_long, coords_lat = coordsxy
         if event.type == pygame.QUIT:
             running = False
             pygame.quit()
@@ -138,7 +155,6 @@ while running:
                 if cnt / 1.5 >= 0:
                     cnt /= 1.5
                     update_map(screen, coordsxy, points, cnt=cnt)
-            coords_long, coords_lat = coordsxy
             if event.key == pygame.K_PAGEDOWN:
                 if cnt * 1.5 >= 0:
                     cnt *= 1.5
